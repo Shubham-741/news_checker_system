@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>News Authenticity Checker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>News Authenticity Checker</h1>
+    </header>
+
+    <div class="container">
+        <form id="newsForm">
+            <label for="article">Paste your news article or headline:</label>
+            <textarea id="article" name="article" rows="6" required placeholder="Enter news content here..."></textarea>
+            <button type="submit">Check</button>
+        </form>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('newsForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const article = document.getElementById('article').value.trim();
+            const resultDiv = document.getElementById('result');
+            if (!article) {
+                resultDiv.innerHTML = '<span style="color:red">Please enter some content to check.</span>';
+                return;
+            }
+            resultDiv.innerHTML = "<em>Checking for authenticity...</em>";
+            try {
+                const response = await fetch('/check-news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ article })
+                });
+                const data = await response.json();
+                if (data.error) {
+                    resultDiv.innerHTML = `<span style="color:red">${data.error}</span>`;
+                } else {
+                    const verdictColor = data.verdict.toLowerCase().includes('fake') ? 'red' : 'green';
+                    const links = data.supporting_links.map(link => 
+                        `<li><a href="${link}" target="_blank">${link}</a></li>`
+                    ).join('');
+                    resultDiv.innerHTML = `
+                        <h2 style="color: ${verdictColor};">${data.verdict}</h2>
+                        <div class="links">
+                            <h3>Supporting Links:</h3>
+                            <ul>${links}</ul>
+                        </div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = '<span style="color:red">Something went wrong. Please try again later.</span>';
+                console.error(err);
+            }
+        };
+    </script>
+</body>
+</html>
